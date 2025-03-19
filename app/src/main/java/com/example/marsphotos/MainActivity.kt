@@ -3,33 +3,34 @@ package com.example.marsphotos
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.activity.viewModels
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import com.example.marsphotos.data.MarsPhotosRepository
-import com.example.marsphotos.ui.MarsPhotosApp
-import com.example.marsphotos.ui.theme.MarsPhotosTheme
-import javax.inject.Inject
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.marsphotos.sync.ExchangeRateWorker
+import com.example.marsphotos.ui.CurrencyScreen
+import com.example.marsphotos.ui.CurrencyViewModel
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var marsPhotosRepository: MarsPhotosRepository // Inyectamos el repositorio
+    // Usamos viewModels para obtener la instancia de CurrencyViewModel
+    private val currencyViewModel: CurrencyViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Inyectamos las dependencias usando Dagger
-        (application as MarsPhotosApplication).appComponent.inject(this)
+        // Crear un WorkRequest para actualizar cada hora
+        val workRequest = PeriodicWorkRequestBuilder<ExchangeRateWorker>(1, TimeUnit.HOURS)
+            .build()
+
+        // Enviar el WorkRequest al WorkManager
+        WorkManager.getInstance(this).enqueue(workRequest)
 
         setContent {
-            MarsPhotosTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    MarsPhotosApp()
+            MaterialTheme {
+                Surface {
+                     CurrencyScreen(viewModel = currencyViewModel)
                 }
             }
         }
